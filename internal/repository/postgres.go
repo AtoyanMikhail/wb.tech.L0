@@ -3,17 +3,18 @@ package repository
 import (
 	"L0/internal/config"
 	"context"
-	"database/sql"
 	"fmt"
+
+	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
-	_ "github.com/lib/pq"
 )
 
 type PostgresRepository struct {
-	db *sql.DB
+	db *sqlx.DB
 }
 
 func NewPostgresRepository(cfg *config.Config) (*PostgresRepository, error) {
@@ -24,7 +25,7 @@ func NewPostgresRepository(cfg *config.Config) (*PostgresRepository, error) {
 		cfg.Postgres.Password,
 		cfg.Postgres.DBName,
 	)
-	db, err := sql.Open("postgres", dsn)
+	db, err := sqlx.Open("postgres", dsn)
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +36,7 @@ func NewPostgresRepository(cfg *config.Config) (*PostgresRepository, error) {
 }
 
 func (r *PostgresRepository) RunMigrations(migrationsPath string) error {
-	driver, err := postgres.WithInstance(r.db, &postgres.Config{})
+	driver, err := postgres.WithInstance(r.db.DB, &postgres.Config{})
 	if err != nil {
 		return err
 	}
@@ -56,51 +57,17 @@ func (r *PostgresRepository) SaveOrder(ctx context.Context, order *Order) error 
 	query := `INSERT INTO orders (
 		order_uid, track_number, entry, delivery, payment, items, locale, internal_signature, customer_id, delivery_service, shardkey, sm_id, date_created, oof_shard
 	) VALUES (
-		$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
+		:order_uid, :track_number, :entry, :delivery, :payment, :items, :locale, :internal_signature, :customer_id, :delivery_service, :shardkey, :sm_id, :date_created, :oof_shard
 	) ON CONFLICT (order_uid) DO NOTHING`
-	_, err := r.db.ExecContext(ctx, query,
-		order.OrderUID,
-		order.TrackNumber,
-		order.Entry,
-		order.Delivery,
-		order.Payment,
-		order.Items,
-		order.Locale,
-		order.InternalSignature,
-		order.CustomerID,
-		order.DeliveryService,
-		order.ShardKey,
-		order.SmID,
-		order.DateCreated,
-		order.OofShard,
-	)
+	_, err := r.db.NamedExecContext(ctx, query, order)
 	return err
 }
 
 func (r *PostgresRepository) GetOrderByID(ctx context.Context, orderUID string) (*Order, error) {
-	query := `SELECT order_uid, track_number, entry, delivery, payment, items, locale, internal_signature, customer_id, delivery_service, shardkey, sm_id, date_created, oof_shard FROM orders WHERE order_uid = $1`
-	row := r.db.QueryRowContext(ctx, query, orderUID)
+	query := `SELECT * FROM orders WHERE order_uid = $1`
 	var order Order
-	err := row.Scan(
-		&order.OrderUID,
-		&order.TrackNumber,
-		&order.Entry,
-		&order.Delivery,
-		&order.Payment,
-		&order.Items,
-		&order.Locale,
-		&order.InternalSignature,
-		&order.CustomerID,
-		&order.DeliveryService,
-		&order.ShardKey,
-		&order.SmID,
-		&order.DateCreated,
-		&order.OofShard,
-	)
+	err := r.db.GetContext(ctx, &order, query, orderUID)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
 		return nil, err
 	}
 	return &order, nil
