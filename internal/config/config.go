@@ -4,6 +4,7 @@ import "os"
 
 type Config struct {
 	Postgres PostgresConfig
+	Kafka    KafkaConfig
 }
 
 type PostgresConfig struct {
@@ -14,6 +15,12 @@ type PostgresConfig struct {
 	DBName   string
 }
 
+type KafkaConfig struct {
+	Brokers []string
+	Topic   string
+	GroupID string
+}
+
 func NewConfig() *Config {
 	return &Config{
 		Postgres: PostgresConfig{
@@ -22,6 +29,11 @@ func NewConfig() *Config {
 			User:     getEnv("POSTGRES_USER", "postgres"),
 			Password: getEnv("POSTGRES_PASSWORD", "postgres"),
 			DBName:   getEnv("POSTGRES_DB", "orders"),
+		},
+		Kafka: KafkaConfig{
+			Brokers: []string{getEnv("KAFKA_BROKERS", "localhost:9092")},
+			Topic:   getEnv("KAFKA_TOPIC", "orders"),
+			GroupID: getEnv("KAFKA_GROUP_ID", "orders-service"),
 		},
 	}
 }
