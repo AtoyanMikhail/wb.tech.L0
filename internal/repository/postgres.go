@@ -25,6 +25,7 @@ func NewPostgresRepository(cfg *config.Config) (*PostgresRepository, error) {
 		cfg.Postgres.Password,
 		cfg.Postgres.DBName,
 	)
+
 	db, err := sqlx.Open("postgres", dsn)
 	if err != nil {
 		return nil, err
@@ -32,6 +33,7 @@ func NewPostgresRepository(cfg *config.Config) (*PostgresRepository, error) {
 	if err := db.Ping(); err != nil {
 		return nil, err
 	}
+
 	return &PostgresRepository{db: db}, nil
 }
 
@@ -40,6 +42,7 @@ func (r *PostgresRepository) RunMigrations(migrationsPath string) error {
 	if err != nil {
 		return err
 	}
+
 	m, err := migrate.NewWithDatabaseInstance(
 		"file://"+migrationsPath,
 		"postgres", driver,
@@ -47,9 +50,11 @@ func (r *PostgresRepository) RunMigrations(migrationsPath string) error {
 	if err != nil {
 		return err
 	}
+
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
 		return err
 	}
+
 	return nil
 }
 
@@ -58,17 +63,33 @@ func (r *PostgresRepository) SaveOrder(ctx context.Context, order *Order) error 
 		order_uid, track_number, entry, delivery, payment, items, locale, internal_signature, customer_id, delivery_service, shardkey, sm_id, date_created, oof_shard
 	) VALUES (
 		:order_uid, :track_number, :entry, :delivery, :payment, :items, :locale, :internal_signature, :customer_id, :delivery_service, :shardkey, :sm_id, :date_created, :oof_shard
-	) ON CONFLICT (order_uid) DO NOTHING`
+	)`
+
 	_, err := r.db.NamedExecContext(ctx, query, order)
+
 	return err
 }
 
 func (r *PostgresRepository) GetOrderByID(ctx context.Context, orderUID string) (*Order, error) {
-	query := `SELECT * FROM orders WHERE order_uid = $1`
 	var order Order
+	query := `SELECT * FROM orders WHERE order_uid = $1`
+
 	err := r.db.GetContext(ctx, &order, query, orderUID)
 	if err != nil {
 		return nil, err
 	}
+
 	return &order, nil
+}
+
+func (r *PostgresRepository) GetAllOrders(ctx context.Context) ([]Order, error) {
+	var orders []Order
+	query := `SELECT * FROM orders`
+	
+	err := r.db.SelectContext(ctx, &orders, query)
+	if err != nil {
+		return nil, err
+	}
+	
+	return orders, nil
 }

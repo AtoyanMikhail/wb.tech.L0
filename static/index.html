@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Поиск заказа</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: Arial, sans-serif; background: #f8f8f8; margin: 0; padding: 0; }
+        .container { max-width: 500px; margin: 40px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px #0001; padding: 24px; }
+        h1 { text-align: center; }
+        label { display: block; margin-bottom: 8px; }
+        input[type=text] { width: 100%; padding: 8px; margin-bottom: 16px; border-radius: 4px; border: 1px solid #ccc; }
+        button { width: 100%; padding: 10px; background: #7b3ff2; color: #fff; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; }
+        button:hover { background: #5e2bb8; }
+        .result { margin-top: 24px; background: #f3f3f3; border-radius: 4px; padding: 16px; word-break: break-all; }
+        .error { color: #c00; margin-top: 16px; text-align: center; }
+        .loading { text-align: center; margin-top: 16px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Поиск заказа</h1>
+    <label for="orderId">Order UID:</label>
+    <input type="text" id="orderId" placeholder="Введите order_uid...">
+    <button onclick="findOrder()">Найти</button>
+    <div class="loading" id="loading" style="display:none;">Загрузка...</div>
+    <div class="error" id="error"></div>
+    <div class="result" id="result" style="display:none;"></div>
+</div>
+<script>
+function findOrder() {
+    const orderId = document.getElementById('orderId').value.trim();
+    const resultDiv = document.getElementById('result');
+    const errorDiv = document.getElementById('error');
+    const loadingDiv = document.getElementById('loading');
+    resultDiv.style.display = 'none';
+    errorDiv.textContent = '';
+    if (!orderId) {
+        errorDiv.textContent = 'Введите order_uid!';
+        return;
+    }
+    loadingDiv.style.display = 'block';
+    fetch(`/order/${orderId}`)
+        .then(r => {
+            loadingDiv.style.display = 'none';
+            if (!r.ok) return r.json().then(e => { throw e; });
+            return r.json();
+        })
+        .then(order => {
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = renderOrder(order);
+        })
+        .catch(e => {
+            errorDiv.textContent = e.error || 'Ошибка при получении заказа';
+        });
+}
+
+function renderOrder(order) {
+    if (!order) return '';
+    let html = `<h2>Заказ: ${order.order_uid}</h2>`;
+    html += `<b>Трек-номер:</b> ${order.track_number}<br>`;
+    html += `<b>Покупатель:</b> ${order.customer_id}<br>`;
+    html += `<b>Сервис доставки:</b> ${order.delivery_service}<br>`;
+    html += `<b>Дата заказа:</b> ${order.date_created}<br>`;
+    html += `<h3>Доставка</h3>`;
+    if (order.delivery) {
+        const d = typeof order.delivery === 'string' ? JSON.parse(order.delivery) : order.delivery;
+        html += `<b>Имя:</b> ${d.name}<br>`;
+        html += `<b>Телефон:</b> ${d.phone}<br>`;
+        html += `<b>Город:</b> ${d.city}<br>`;
+        html += `<b>Адрес:</b> ${d.address}<br>`;
+        html += `<b>Регион:</b> ${d.region}<br>`;
+        html += `<b>Почта:</b> ${d.email}<br>`;
+    }
+    html += `<h3>Оплата</h3>`;
+    if (order.payment) {
+        const p = typeof order.payment === 'string' ? JSON.parse(order.payment) : order.payment;
+        html += `<b>Сумма:</b> ${p.amount} ${p.currency}<br>`;
+        html += `<b>Банк:</b> ${p.bank}<br>`;
+        html += `<b>Провайдер:</b> ${p.provider}<br>`;
+        html += `<b>Доставка:</b> ${p.delivery_cost}<br>`;
+        html += `<b>Товары:</b> ${p.goods_total}<br>`;
+    }
+    html += `<h3>Товары</h3>`;
+    if (order.items) {
+        const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+        html += `<ul>`;
+        for (const item of items) {
+            html += `<li><b>${item.name}</b> (${item.brand}) — <s>${item.price}</s> <b>${item.total_price}</b>(-${item.sale}%)</li>`;
+        }
+        html += `</ul>`;
+    }
+    return html;
+}
+</script>
+</body>
+</html> 

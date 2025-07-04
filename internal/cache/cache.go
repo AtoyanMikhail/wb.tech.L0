@@ -2,9 +2,14 @@ package cache
 
 import (
 	"context"
-	"sync"
+	"encoding/json"
+	"time"
 
+	"L0/internal/config"
+	"L0/internal/logger"
 	"L0/internal/repository"
+
+	"github.com/redis/go-redis/v9"
 )
 
 type Cache interface {
@@ -13,36 +18,67 @@ type Cache interface {
 	Delete(ctx context.Context, key string) error
 }
 
-type InMemoryCache struct {
-	data map[string]*repository.Order
-	mu   sync.RWMutex
+type RedisCache struct {
+	client *redis.Client
+	prefix string
+	ttl    time.Duration
+	logger logger.Logger
 }
 
-func NewInMemoryCache() Cache {
-	return &InMemoryCache{
-		data: make(map[string]*repository.Order),
+func NewRedisCache(cfg config.RedisConfig, logger logger.Logger) Cache {
+	client := redis.NewClient(&redis.Options{
+		Addr:     cfg.Host + ":" + cfg.Port,
+		Password: cfg.Password,
+		DB:       cfg.DB,
+	})
+	return &RedisCache{
+		client: client,
+		prefix: cfg.Prefix,
+		ttl:    time.Duration(cfg.TTL) * time.Second,
+		logger: logger.WithField("component", "redis_cache"),
 	}
 }
 
-func (c *InMemoryCache) Set(ctx context.Context, key string, value *repository.Order) error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.data[key] = value
-	return nil
-}
-
-func (c *InMemoryCache) Get(ctx context.Context, key string) (*repository.Order, error) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	if value, exists := c.data[key]; exists {
-		return value, nil
+func (c *RedisCache) Set(ctx context.Context, key string, value *repository.Order) error {
+	b, err := json.Marshal(value)
+	if err != nil {
+		c.logger.Errorf("Failed to marshal order for cache: %v", err)
+		return err
 	}
-	return nil, nil // Возвращаем nil, если ключ не найден
+	err = c.client.Set(ctx, c.prefix+key, b, c.ttl).Err()
+	if err != nil {
+		c.logger.Errorf("Failed to set order in cache: %v", err)
+	} else {
+		c.logger.Infof("Order cached successfully: %s", key)
+	}
+	return err
 }
 
-func (c *InMemoryCache) Delete(ctx context.Context, key string) error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	delete(c.data, key)
-	return nil
+func (c *RedisCache) Get(ctx context.Context, key string) (*repository.Order, error) {
+	val, err := c.client.Get(ctx, c.prefix+key).Result()
+	if err == redis.Nil {
+		c.logger.Debugf("Order not found in cache: %s", key)
+		return nil, nil
+	}
+	if err != nil {
+		c.logger.Errorf("Failed to get order from cache: %v", err)
+		return nil, err
+	}
+	var order repository.Order
+	if err := json.Unmarshal([]byte(val), &order); err != nil {
+		c.logger.Errorf("Failed to unmarshal order from cache: %v", err)
+		return nil, err
+	}
+	c.logger.Infof("Order retrieved from cache: %s", key)
+	return &order, nil
+}
+
+func (c *RedisCache) Delete(ctx context.Context, key string) error {
+	err := c.client.Del(ctx, c.prefix+key).Err()
+	if err != nil {
+		c.logger.Errorf("Failed to delete order from cache: %v", err)
+	} else {
+		c.logger.Infof("Order deleted from cache: %s", key)
+	}
+	return err
 }
