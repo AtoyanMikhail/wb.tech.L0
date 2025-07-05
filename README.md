@@ -13,7 +13,7 @@
 
 ## Демонстрация веб-интерфейса
 
-![](media/demo.mp4)
+https://github.com/user-attachments/assets/3d8455e6-2614-465c-b546-14969f9ea810
 
 ## Архитектура
 
