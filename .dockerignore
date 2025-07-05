@@ -9,9 +9,6 @@ docker-compose.yml
 
 # IDE
 .vscode
-.idea
-*.swp
-*.swo
 
 # OS
 .DS_Store
@@ -23,8 +20,7 @@ Thumbs.db
 # Test files
 *_test.go
 test_*.go
-send_test_order.go
-test_order.json
+message_kafka.sh
 
 # Documentation
 README.md

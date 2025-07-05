@@ -36,7 +36,7 @@ func (h *Handler) GetOrder() gin.HandlerFunc {
 		order, err := h.orderService.GetOrderByID(c.Request.Context(), orderUID)
 		if err != nil {
 			h.logger.Errorf("Failed to get order %s: %v", orderUID, err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get order by id"})
 			return
 		}
 		if order == nil {
@@ -45,7 +45,6 @@ func (h *Handler) GetOrder() gin.HandlerFunc {
 			return
 		}
 
-		// Декодируем delivery, payment, items
 		var delivery, payment interface{}
 		var items []interface{}
 		if err := json.Unmarshal(order.Delivery, &delivery); err != nil {

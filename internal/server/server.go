@@ -12,11 +12,10 @@ type Server struct {
 func NewServer(handler *Handler) *Server {
 	r := gin.Default()
 
-	r.Static("/static", "./static") // отдача статики
+	r.Static("/static", "./static") 
 
 	r.GET("/order/:order_uid", handler.GetOrder())
 
-	// Главная страница (HTML)
 	r.GET("/", func(c *gin.Context) {
 		c.File("./static/index.html")
 	})

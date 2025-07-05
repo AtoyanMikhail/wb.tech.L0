@@ -26,7 +26,6 @@ func main() {
 	cfg := config.NewConfig()
 	log.Info("Configuration loaded")
 
-	// Инициализация репозитория
 	repo, err := repository.NewPostgresRepository(cfg)
 	if err != nil {
 		log.Errorf("Failed to connect to database: %v", err)
@@ -34,22 +33,18 @@ func main() {
 	}
 	log.Info("Database connection established")
 
-	// Инициализация кэша
 	cache := cache.NewRedisCache(cfg.Redis, log)
 	log.Info("Redis cache initialized")
 
-	// Инициализация сервиса
 	orderService := service.NewOrderService(repo, cache, log)
 	log.Info("Order service initialized")
 
-	// Получаем абсолютный путь к папке migrations
 	migrationsPath, err := filepath.Abs("migrations")
 	if err != nil {
 		log.Errorf("Failed to get migrations path: %v", err)
 		log.Fatalf("failed to get migrations path: %v", err)
 	}
 
-	// Запуск миграций
 	err = repo.RunMigrations(migrationsPath)
 	if err != nil {
 		log.Errorf("Failed to run migrations: %v", err)
@@ -57,15 +52,13 @@ func main() {
 	}
 	log.Info("Database migrations applied successfully")
 
-	// Инициализация Kafka consumer с сервисом
 	consumer := kafka.NewConsumer(cfg, orderService, log)
 	log.Info("Kafka consumer initialized")
 
-	// Создаём контекст с отменой для graceful shutdown
+	// Context for shutting kafka down gracefully
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Запускаем consumer в горутине
 	go func() {
 		log.Info("Starting Kafka consumer")
 		if err := consumer.Start(ctx); err != nil {
@@ -73,7 +66,6 @@ func main() {
 		}
 	}()
 
-	// Инициализация handler и server
 	handler := server.NewHandler(orderService, log)
 	appServer := server.NewServer(handler)
 	go func() {
@@ -84,18 +76,15 @@ func main() {
 		}
 	}()
 
-	// Обработка сигналов для graceful shutdown
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
-	// Ждём сигнала для завершения
 	<-sigChan
 	log.Info("Received shutdown signal. Gracefully shutting down...")
 
-	// Отменяем контекст для остановки consumer
 	cancel()
 
-	// Даём время на graceful shutdown
-	time.Sleep(2 * time.Second)
+	// timeout for graceful shutdown
+	time.Sleep(3 * time.Second)
 	log.Info("Service shutdown completed")
 }

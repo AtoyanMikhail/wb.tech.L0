@@ -1,9 +1,9 @@
 {
-   "order_uid": "myorder",
+   "order_uid": "amazingorder",
    "track_number": "WBILMTESTTRACK",
    "entry": "WBIL",
    "delivery": {
-      "name": "Test Testov",
+      "name": "John Doe",
       "phone": "+9720000000",
       "zip": "2639809",
       "city": "Kiryat Mozkin",
@@ -29,12 +29,12 @@
          "track_number": "WBILMTESTTRACK",
          "price": 453,
          "rid": "ab4219087a764ae0btest",
-         "name": "Myass",
+         "name": "Боксеры",
          "sale": 30,
          "size": "0",
          "total_price": 317,
          "nm_id": 2389212,
-         "brand": "nga",
+         "brand": "Беларусский трикотаж",
          "status": 202
       }
    ],
