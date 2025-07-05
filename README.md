@@ -13,7 +13,7 @@
 
 ## Демонстрация веб-интерфейса
 
-![](media/demonstration.mkv)
+![](media/demo.mp4)
 
 ## Архитектура
 
