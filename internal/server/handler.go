@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"L0/internal/logger"
@@ -45,28 +44,13 @@ func (h *Handler) GetOrder() gin.HandlerFunc {
 			return
 		}
 
-		var delivery, payment interface{}
-		var items []interface{}
-		if err := json.Unmarshal(order.Delivery, &delivery); err != nil {
-			h.logger.Warnf("Failed to unmarshal delivery for order %s: %v", orderUID, err)
-			delivery = nil
-		}
-		if err := json.Unmarshal(order.Payment, &payment); err != nil {
-			h.logger.Warnf("Failed to unmarshal payment for order %s: %v", orderUID, err)
-			payment = nil
-		}
-		if err := json.Unmarshal(order.Items, &items); err != nil {
-			h.logger.Warnf("Failed to unmarshal items for order %s: %v", orderUID, err)
-			items = nil
-		}
-
 		response := gin.H{
 			"order_uid":          order.OrderUID,
 			"track_number":       order.TrackNumber,
 			"entry":              order.Entry,
-			"delivery":           delivery,
-			"payment":            payment,
-			"items":              items,
+			"delivery":           order.Delivery,
+			"payment":            order.Payment,
+			"items":              order.Items,
 			"locale":             order.Locale,
 			"internal_signature": order.InternalSignature,
 			"customer_id":        order.CustomerID,

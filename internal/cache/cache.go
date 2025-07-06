@@ -7,14 +7,14 @@ import (
 
 	"L0/internal/config"
 	"L0/internal/logger"
-	"L0/internal/repository"
+	"L0/internal/models"
 
 	"github.com/redis/go-redis/v9"
 )
 
 type Cache interface {
-	Set(ctx context.Context, key string, value *repository.Order) error
-	Get(ctx context.Context, key string) (*repository.Order, error)
+	Set(ctx context.Context, key string, value *models.Order) error
+	Get(ctx context.Context, key string) (*models.Order, error)
 	Delete(ctx context.Context, key string) error
 }
 
@@ -39,7 +39,7 @@ func NewRedisCache(cfg config.RedisConfig, logger logger.Logger) Cache {
 	}
 }
 
-func (c *RedisCache) Set(ctx context.Context, key string, value *repository.Order) error {
+func (c *RedisCache) Set(ctx context.Context, key string, value *models.Order) error {
 	b, err := json.Marshal(value)
 	if err != nil {
 		c.logger.Errorf("Failed to marshal order for cache: %v", err)
@@ -54,7 +54,7 @@ func (c *RedisCache) Set(ctx context.Context, key string, value *repository.Orde
 	return err
 }
 
-func (c *RedisCache) Get(ctx context.Context, key string) (*repository.Order, error) {
+func (c *RedisCache) Get(ctx context.Context, key string) (*models.Order, error) {
 	val, err := c.client.Get(ctx, c.prefix+key).Result()
 	if err == redis.Nil {
 		c.logger.Debugf("Order not found in cache: %s", key)
@@ -64,7 +64,7 @@ func (c *RedisCache) Get(ctx context.Context, key string) (*repository.Order, er
 		c.logger.Errorf("Failed to get order from cache: %v", err)
 		return nil, err
 	}
-	var order repository.Order
+	var order models.Order
 	if err := json.Unmarshal([]byte(val), &order); err != nil {
 		c.logger.Errorf("Failed to unmarshal order from cache: %v", err)
 		return nil, err

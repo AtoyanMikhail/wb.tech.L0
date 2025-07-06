@@ -5,12 +5,13 @@ import (
 
 	"L0/internal/cache"
 	"L0/internal/logger"
+	"L0/internal/models"
 	"L0/internal/repository"
 )
 
 type OrderService interface {
-	CreateOrder(ctx context.Context, order *repository.Order) error
-	GetOrderByID(ctx context.Context, orderUID string) (*repository.Order, error)
+	CreateOrder(ctx context.Context, order *models.Order) error
+	GetOrderByID(ctx context.Context, orderUID string) (*models.Order, error)
 }
 
 type OrderServiceImpl struct {
@@ -34,10 +35,10 @@ func NewOrderService(repo repository.OrderRepository, cache cache.Cache, logger 
 	}
 }
 
-func (s *OrderServiceImpl) CreateOrder(ctx context.Context, order *repository.Order) error {
+func (s *OrderServiceImpl) CreateOrder(ctx context.Context, order *models.Order) error {
 	s.logger.Infof("Creating order: %s", order.OrderUID)
 
-	if err := repository.ValidateOrder(order); err != nil {
+	if err := models.ValidateOrder(order); err != nil {
 		s.logger.Errorf("Order validation failed: %v", err)
 		return err
 	}
@@ -55,7 +56,7 @@ func (s *OrderServiceImpl) CreateOrder(ctx context.Context, order *repository.Or
 	return nil
 }
 
-func (s *OrderServiceImpl) GetOrderByID(ctx context.Context, orderUID string) (*repository.Order, error) {
+func (s *OrderServiceImpl) GetOrderByID(ctx context.Context, orderUID string) (*models.Order, error) {
 	s.logger.Infof("Getting order by ID: %s", orderUID)
 
 	if order, err := s.cache.Get(ctx, orderUID); err == nil && order != nil {
