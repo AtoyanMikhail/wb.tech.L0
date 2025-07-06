@@ -161,7 +161,7 @@ curl http://localhost:8081/order/myorder
 ./message_kafka.sh test_order.json localhost:9092 orders
 ```
 
-2. Проверьте в веб-интерфейсе заказ с ID `myorder`
+2. Проверьте в веб-интерфейсе заказ с ID, указанном в `test_order.json`
 
 ## Конфигурация
 
