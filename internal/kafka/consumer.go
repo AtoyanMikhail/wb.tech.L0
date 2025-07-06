@@ -7,7 +7,7 @@ import (
 
 	"L0/internal/config"
 	"L0/internal/logger"
-	"L0/internal/repository"
+	"L0/internal/models"
 	"L0/internal/service"
 
 	"github.com/segmentio/kafka-go"
@@ -72,7 +72,7 @@ func (c *Consumer) Start(ctx context.Context) error {
 }
 
 func (c *Consumer) processMessage(ctx context.Context, m kafka.Message) error {
-	var order repository.Order
+	var order models.Order
 	if err := json.Unmarshal(m.Value, &order); err != nil {
 		c.logger.Errorf("Failed to unmarshal order: %v", err)
 		return fmt.Errorf("failed to unmarshal order: %w", err)
